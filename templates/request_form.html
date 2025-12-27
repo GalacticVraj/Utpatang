@@ -1,25 +1,53 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="mb-3">
-    <label>Request Type</label>
-    <select name="type" class="form-select">
-        <option value="Corrective" {% if pre_type=='Corrective' %}selected{% endif %}>Corrective</option>
-        <option value="Preventive" {% if pre_type=='Preventive' %}selected{% endif %}>Preventive</option>
-    </select>
-</div>
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0">Create Maintenance Request</h3>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        <div class="mb-3">
+                            <label class="form-label">Subject</label>
+                            <input type="text" name="subject" class="form-control" placeholder="e.g. Motor vibrating"
+                                required>
+                        </div>
 
-<div class="mb-3">
-    <label>Select Equipment</label>
-    <select name="equipment_id" class="form-select" required>
-        <option value="">-- Choose Equipment --</option>
-        {% for eq in equipment %}
-        <option value="{{ eq.id }}">{{ eq.name }} ({{ eq.serial_number }})</option>
-        {% endfor %}
-    </select>
-</div>
+                        <div class="mb-3">
+                            <label class="form-label">Request Type</label>
+                            <select name="type" class="form-select">
+                                <option value="Corrective" {% if pre_type=='Corrective' %}selected{% endif %}>Corrective
+                                </option>
+                                <option value="Preventive" {% if pre_type=='Preventive' %}selected{% endif %}>Preventive
+                                </option>
+                            </select>
+                        </div>
 
-<div class="mb-3">
-    <label>Scheduled Date</label>
-    <input type="date" name="scheduled_date" class="form-control" value="{{ pre_date }}">
+                        <div class="mb-3">
+                            <label class="form-label">Select Equipment</label>
+                            <select name="equipment_id" class="form-select" required>
+                                <option value="">-- Choose Equipment --</option>
+                                {% for eq in equipment %}
+                                <option value="{{ eq.id }}">{{ eq.name }} ({{ eq.serial_number }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Scheduled Date</label>
+                            <input type="date" name="scheduled_date" class="form-control" value="{{ pre_date }}">
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">Create Request</button>
+                            <a href="/kanban" class="btn btn-outline-secondary">Cancel</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock %}

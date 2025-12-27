@@ -24,39 +24,41 @@
                             <span class="fw-bold">{{ count }}</span>
                         </div>
                         <div class="progress" style="height: 10px;">
-                            <div class="progress-bar bg-primary" role="progressbar"
-                                style="width: {{ (count / 10 * 100) if count < 10 else 100 }}%"></div>
+                            {% set width_pct = (count * 10) if count < 10 else 100 %} <div
+                                class="progress-bar bg-primary" role="progressbar" style="width: {{ width_pct }}%;">
                         </div>
                     </div>
-                    {% else %}
-                    <p class="text-muted text-center">No data available.</p>
-                    {% endfor %}
                 </div>
-            </div>
-        </div>
-
-        <!-- Requests by Category -->
-        <div class="col-md-6 mb-4">
-            <div class="card shadow-sm h-100">
-                <div class="card-header bg-white fw-bold">Requests by Equipment Category (Dept)</div>
-                <div class="card-body">
-                    {% for dept, count in dept_reports %}
-                    <div class="mb-3">
-                        <div class="d-flex justify-content-between mb-1">
-                            <span>{{ dept }}</span>
-                            <span class="fw-bold">{{ count }}</span>
-                        </div>
-                        <div class="progress" style="height: 10px;">
-                            <div class="progress-bar bg-info" role="progressbar"
-                                style="width: {{ (count / 10 * 100) if count < 10 else 100 }}%"></div>
-                        </div>
-                    </div>
-                    {% else %}
-                    <p class="text-muted text-center">No data available.</p>
-                    {% endfor %}
-                </div>
+                {% else %}
+                <p class="text-muted text-center">No data available.</p>
+                {% endfor %}
             </div>
         </div>
     </div>
+
+    <!-- Requests by Category -->
+    <div class="col-md-6 mb-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-white fw-bold">Requests by Equipment Category (Dept)</div>
+            <div class="card-body">
+                {% for dept, count in dept_reports %}
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span>{{ dept }}</span>
+                        <span class="fw-bold">{{ count }}</span>
+                    </div>
+                    <div class="progress" style="height: 10px;">
+                        {% set width_pct = (count * 10) if count < 10 else 100 %} <div class="progress-bar bg-info"
+                            role="progressbar" style="width: {{ width_pct }}%;">
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <p class="text-muted text-center">No data available.</p>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+</div>
 </div>
 {% endblock %}

@@ -1,74 +1,128 @@
 {% extends 'base.html' %}
 {% block content %}
-<!-- Equipment Inventory -->
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <h2>Equipment Inventory</h2>
-    <div class="d-flex gap-2">
-        <input type="text" id="searchInput" class="form-control" placeholder="Search name/serial...">
-        <select id="deptFilter" class="form-select" style="width: auto;">
-            <option value="">All Departments</option>
-            <!-- Departments should be dynamic, but I'll add a few defaults -->
-            <option value="Production">Production</option>
-            <option value="IT">IT</option>
-            <option value="Engineering">Engineering</option>
-        </select>
+<div class="container mt-4">
+    <!-- Add Equipment Form -->
+    <div class="card shadow-sm mb-5">
+        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Add New Equipment</h5>
+            <button class="btn btn-sm btn-outline-light" type="button" data-bs-toggle="collapse"
+                data-bs-target="#addEquipForm">
+                Toggle Form
+            </button>
+        </div>
+        <div class="collapse" id="addEquipForm">
+            <div class="card-body">
+                <form method="POST" class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Equipment Name</label>
+                        <input type="text" name="name" class="form-control" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Serial Number</label>
+                        <input type="text" name="serial" class="form-control" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Department</label>
+                        <select name="department" class="form-select">
+                            <option value="Production">Production</option>
+                            <option value="IT">IT</option>
+                            <option value="Engineering">Engineering</option>
+                            <option value="HR">HR</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Assigned Employee</label>
+                        <input type="text" name="employee" class="form-control">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Location</label>
+                        <input type="text" name="location" class="form-control">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Maintenance Team</label>
+                        <input type="text" name="team" class="form-control" placeholder="e.g. Electrical">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Default Technician</label>
+                        <input type="text" name="technician" class="form-control">
+                    </div>
+                    <div class="col-12 text-end">
+                        <button type="submit" class="btn btn-success px-4">Save Equipment</button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
-</div>
+    <!-- Equipment Inventory -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2>Equipment Inventory</h2>
+        <div class="d-flex gap-2">
+            <input type="text" id="searchInput" class="form-control" placeholder="Search name/serial...">
+            <select id="deptFilter" class="form-select" style="width: auto;">
+                <option value="">All Departments</option>
+                <!-- Departments should be dynamic, but I'll add a few defaults -->
+                <option value="Production">Production</option>
+                <option value="IT">IT</option>
+                <option value="Engineering">Engineering</option>
+            </select>
+        </div>
+    </div>
 
-<div class="card shadow-sm">
-    <div class="card-body p-0">
-        <table class="table table-hover mb-0" id="equipmentTable">
-            <thead class="table-light">
-                <tr>
-                    <th>Name</th>
-                    <th>Serial</th>
-                    <th>Dept</th>
-                    <th>Employee</th>
-                    <th>Location</th>
-                    <th>Status</th>
-                    <th class="text-end">Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for eq in equipment %}
-                <tr class="equipment-row" data-dept="{{ eq.department }}" data-employee="{{ eq.assigned_employee }}">
-                    <td>
-                        <div class="fw-bold">{{ eq.name }}</div>
-                        <small class="text-muted">{{ eq.maintenance_team }}</small>
-                    </td>
-                    <td>{{ eq.serial_number }}</td>
-                    <td>{{ eq.department }}</td>
-                    <td>{{ eq.assigned_employee }}</td>
-                    <td>{{ eq.location }}</td>
-                    <td>
-                        {% if eq.is_scrapped %}
-                        <span class="badge bg-danger">Scrapped</span>
-                        {% else %}
-                        <span class="badge bg-success">Active</span>
-                        {% endif %}
-                    </td>
-                    <td class="text-end">
-                        <a href="/equipment/{{ eq.id }}/maintenance"
-                            class="btn btn-sm btn-outline-primary position-relative">
-                            Maintenance
-                            {% if eq.open_requests_count > 0 %}
-                            <span
-                                class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
-                                {{ eq.open_requests_count }}
-                            </span>
+    <div class="card shadow-sm">
+        <div class="card-body p-0">
+            <table class="table table-hover mb-0" id="equipmentTable">
+                <thead class="table-light">
+                    <tr>
+                        <th>Name</th>
+                        <th>Serial</th>
+                        <th>Dept</th>
+                        <th>Employee</th>
+                        <th>Location</th>
+                        <th>Status</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for eq in equipment %}
+                    <tr class="equipment-row" data-dept="{{ eq.department }}"
+                        data-employee="{{ eq.assigned_employee }}">
+                        <td>
+                            <div class="fw-bold">{{ eq.name }}</div>
+                            <small class="text-muted">{{ eq.maintenance_team }}</small>
+                        </td>
+                        <td>{{ eq.serial_number }}</td>
+                        <td>{{ eq.department }}</td>
+                        <td>{{ eq.assigned_employee }}</td>
+                        <td>{{ eq.location }}</td>
+                        <td>
+                            {% if eq.is_scrapped %}
+                            <span class="badge bg-danger">Scrapped</span>
+                            {% else %}
+                            <span class="badge bg-success">Active</span>
                             {% endif %}
-                        </a>
-                    </td>
-                </tr>
-                {% else %}
-                <tr>
-                    <td colspan="7" class="text-center py-4">No equipment found.</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+                        </td>
+                        <td class="text-end">
+                            <a href="/equipment/{{ eq.id }}/maintenance"
+                                class="btn btn-sm btn-outline-primary position-relative">
+                                Maintenance
+                                {% if eq.open_requests_count > 0 %}
+                                <span
+                                    class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                                    {{ eq.open_requests_count }}
+                                </span>
+                                {% endif %}
+                            </a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="text-center py-4">No equipment found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
-</div>
 </div>
 
 <script>
