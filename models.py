@@ -42,5 +42,6 @@ class MaintenanceRequest(db.Model):
 
     scheduled_date = db.Column(db.Date)
     duration_hours = db.Column(db.Float)
+    actual_duration = db.Column(db.Float)
 
     created_at = db.Column(db.Date, default=date.today)

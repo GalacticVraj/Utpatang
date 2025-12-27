@@ -1,4 +1,25 @@
 {% extends 'base.html' %}
 {% block content %}
-<h1>Request Form</h1>
+<div class="mb-3">
+    <label>Request Type</label>
+    <select name="type" class="form-select">
+        <option value="Corrective" {% if pre_type=='Corrective' %}selected{% endif %}>Corrective</option>
+        <option value="Preventive" {% if pre_type=='Preventive' %}selected{% endif %}>Preventive</option>
+    </select>
+</div>
+
+<div class="mb-3">
+    <label>Select Equipment</label>
+    <select name="equipment_id" class="form-select" required>
+        <option value="">-- Choose Equipment --</option>
+        {% for eq in equipment %}
+        <option value="{{ eq.id }}">{{ eq.name }} ({{ eq.serial_number }})</option>
+        {% endfor %}
+    </select>
+</div>
+
+<div class="mb-3">
+    <label>Scheduled Date</label>
+    <input type="date" name="scheduled_date" class="form-control" value="{{ pre_date }}">
+</div>
 {% endblock %}

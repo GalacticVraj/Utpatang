@@ -1,4 +1,96 @@
 {% extends 'base.html' %}
 {% block content %}
-<h1>Equipment</h1>
+<!-- Equipment Inventory -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>Equipment Inventory</h2>
+    <div class="d-flex gap-2">
+        <input type="text" id="searchInput" class="form-control" placeholder="Search name/serial...">
+        <select id="deptFilter" class="form-select" style="width: auto;">
+            <option value="">All Departments</option>
+            <!-- Departments should be dynamic, but I'll add a few defaults -->
+            <option value="Production">Production</option>
+            <option value="IT">IT</option>
+            <option value="Engineering">Engineering</option>
+        </select>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0" id="equipmentTable">
+            <thead class="table-light">
+                <tr>
+                    <th>Name</th>
+                    <th>Serial</th>
+                    <th>Dept</th>
+                    <th>Employee</th>
+                    <th>Location</th>
+                    <th>Status</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for eq in equipment %}
+                <tr class="equipment-row" data-dept="{{ eq.department }}" data-employee="{{ eq.assigned_employee }}">
+                    <td>
+                        <div class="fw-bold">{{ eq.name }}</div>
+                        <small class="text-muted">{{ eq.maintenance_team }}</small>
+                    </td>
+                    <td>{{ eq.serial_number }}</td>
+                    <td>{{ eq.department }}</td>
+                    <td>{{ eq.assigned_employee }}</td>
+                    <td>{{ eq.location }}</td>
+                    <td>
+                        {% if eq.is_scrapped %}
+                        <span class="badge bg-danger">Scrapped</span>
+                        {% else %}
+                        <span class="badge bg-success">Active</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-end">
+                        <a href="/equipment/{{ eq.id }}/maintenance"
+                            class="btn btn-sm btn-outline-primary position-relative">
+                            Maintenance
+                            {% if eq.open_requests_count > 0 %}
+                            <span
+                                class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                                {{ eq.open_requests_count }}
+                            </span>
+                            {% endif %}
+                        </a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" class="text-center py-4">No equipment found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+</div>
+
+<script>
+    document.getElementById('searchInput').addEventListener('keyup', function () {
+        let filter = this.value.toUpperCase();
+        let rows = document.querySelectorAll('#equipmentTable tbody tr.equipment-row');
+        rows.forEach(row => {
+            let text = row.innerText.toUpperCase();
+            row.style.display = text.includes(filter) ? "" : "none";
+        });
+    });
+
+    document.getElementById('deptFilter').addEventListener('change', function () {
+        let filter = this.value;
+        let rows = document.querySelectorAll('#equipmentTable tbody tr.equipment-row');
+        rows.forEach(row => {
+            if (!filter || row.getAttribute('data-dept') === filter) {
+                row.style.display = "";
+            } else {
+                row.style.display = "none";
+            }
+        });
+    });
+</script>
 {% endblock %}

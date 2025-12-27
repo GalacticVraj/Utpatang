@@ -1,8 +1,62 @@
 {% extends 'base.html' %}
-
-{% block title %}Dashboard - Gear Guard{% endblock %}
-
 {% block content %}
-<h1>Dashboard</h1>
-<p>Welcome to Gear Guard</p>
+<div class="container mt-4">
+    <div class="jumbotron bg-light p-5 rounded shadow-sm border-start border-primary border-5">
+        <h1 class="display-4 fw-bold">Welcome to GearGuard</h1>
+        <p class="lead">The Ultimate Industrial Maintenance & Asset Tracker.</p>
+        <hr class="my-4">
+        <div class="d-flex gap-3">
+            <a class="btn btn-primary btn-lg" href="/create_request" role="button">Log Breakdown</a>
+            <a class="btn btn-outline-secondary btn-lg" href="/equipment" role="button">Inventory</a>
+        </div>
+    </div>
+
+    <div class="row mt-5">
+        <!-- Requests by Team -->
+        <div class="col-md-6 mb-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-white fw-bold">Requests by Maintenance Team</div>
+                <div class="card-body">
+                    {% for team, count in team_reports %}
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>{{ team }}</span>
+                            <span class="fw-bold">{{ count }}</span>
+                        </div>
+                        <div class="progress" style="height: 10px;">
+                            <div class="progress-bar bg-primary" role="progressbar"
+                                style="width: {{ (count / 10 * 100) if count < 10 else 100 }}%"></div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <p class="text-muted text-center">No data available.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Requests by Category -->
+        <div class="col-md-6 mb-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-white fw-bold">Requests by Equipment Category (Dept)</div>
+                <div class="card-body">
+                    {% for dept, count in dept_reports %}
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>{{ dept }}</span>
+                            <span class="fw-bold">{{ count }}</span>
+                        </div>
+                        <div class="progress" style="height: 10px;">
+                            <div class="progress-bar bg-info" role="progressbar"
+                                style="width: {{ (count / 10 * 100) if count < 10 else 100 }}%"></div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <p class="text-muted text-center">No data available.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
