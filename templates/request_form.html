@@ -26,14 +26,60 @@
                         </div>
 
                         <div class="mb-3">
+                            <label class="form-label d-block">Maintenance For</label>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="maintenance_for" id="for_equipment"
+                                    value="Equipment" checked onchange="toggleMaintenanceFor()">
+                                <label class="form-check-label" for="for_equipment">Equipment</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="maintenance_for" id="for_work_center"
+                                    value="Work Center" onchange="toggleMaintenanceFor()">
+                                <label class="form-check-label" for="for_work_center">Work Center</label>
+                            </div>
+                        </div>
+
+                        <div class="mb-3" id="equipment_field">
                             <label class="form-label">Select Equipment</label>
-                            <select name="equipment_id" class="form-select" required>
+                            <select name="equipment_id" id="equipment_id" class="form-select" required>
                                 <option value="">-- Choose Equipment --</option>
                                 {% for eq in equipment %}
                                 <option value="{{ eq.id }}">{{ eq.name }} ({{ eq.serial_number }})</option>
                                 {% endfor %}
                             </select>
                         </div>
+
+                        <div class="mb-3 d-none" id="work_center_field">
+                            <label class="form-label">Select Work Center</label>
+                            <select name="work_center_id" id="work_center_id" class="form-select">
+                                <option value="">-- Choose Work Center --</option>
+                                {% for wc in work_centers %}
+                                <option value="{{ wc.id }}">{{ wc.name }} ({{ wc.code }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <script>
+                            function toggleMaintenanceFor() {
+                                const isEq = document.getElementById('for_equipment').checked;
+                                const eqField = document.getElementById('equipment_field');
+                                const wcField = document.getElementById('work_center_field');
+                                const eqInput = document.getElementById('equipment_id');
+                                const wcInput = document.getElementById('work_center_id');
+
+                                if (isEq) {
+                                    eqField.classList.remove('d-none');
+                                    wcField.classList.add('d-none');
+                                    eqInput.required = true;
+                                    wcInput.required = false;
+                                } else {
+                                    eqField.classList.add('d-none');
+                                    wcField.classList.remove('d-none');
+                                    eqInput.required = false;
+                                    wcInput.required = true;
+                                }
+                            }
+                        </script>
 
                         <div class="mb-3">
                             <label class="form-label">Scheduled Date</label>

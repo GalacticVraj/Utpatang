@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container d-flex justify-content-center align-items-center" style="min-height: 80vh;">
+    <div class="card bg-dark text-white shadow-lg p-4"
+        style="width: 400px; border-radius: 15px; border: 1px solid #444;">
+        <div class="card-body">
+            <h3 class="text-center mb-5" style="font-family: 'Inter', sans-serif;">Login Page</h3>
+
+            <form method="POST" action="/login">
+                <div class="mb-4">
+                    <label for="email" class="form-label">Email id</label>
+                    <input type="email" class="form-control bg-transparent text-white" id="email" name="email" required
+                        style="border: none; border-bottom: 1px solid #aaa; border-radius: 0;">
+                </div>
+                <div class="mb-5">
+                    <label for="password" class="form-label">Password</label>
+                    <input type="password" class="form-control bg-transparent text-white" id="password" name="password"
+                        required style="border: none; border-bottom: 1px solid #aaa; border-radius: 0;">
+                </div>
+
+                <div class="d-grid mb-4">
+                    <button type="submit" class="btn btn-outline-light btn-lg px-5 mx-auto"
+                        style="border-radius: 10px;">Sign in</button>
+                </div>
+
+                <div class="text-center">
+                    <a href="#" class="text-decoration-none text-info small">Forget Password ?</a>
+                    <span class="text-muted mx-2">|</span>
+                    <a href="/signup" class="text-decoration-none text-info small">Sign Up</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

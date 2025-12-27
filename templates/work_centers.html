@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Work Centers</h5>
+            <button class="btn btn-outline-light btn-sm">New</button>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0" style="background-color: #1e1e1e; color: #e0e0e0;">
+                    <thead class="table-dark">
+                        <tr>
+                            <th scope="col">Work Center</th>
+                            <th scope="col">Code</th>
+                            <th scope="col">Tag</th>
+                            <th scope="col">Alternative Workcenters</th>
+                            <th scope="col">Cost per hour</th>
+                            <th scope="col">Capacity Efficiency / OEE Target</th>
+                        </tr>
+                    </thead>
+                    <tbody style="background-color: #121212; color: #ccc;">
+                        {% for wc in work_centers %}
+                        <tr>
+                            <td class="fw-bold text-white">{{ wc.name }}</td>
+                            <td>{{ wc.code }}</td>
+                            <td>{{ wc.tag }}</td>
+                            <td>{{ wc.active_work_centers }}</td>
+                            <td>{{ wc.cost_per_hour }}</td>
+                            <td>
+                                <div>{{ wc.capacity_efficiency }}% Efficiency</div>
+                                <div class="text-muted small">{{ wc.oee_target }}% OEE Target</div>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="6" class="text-center py-4">No Work Centers Found</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

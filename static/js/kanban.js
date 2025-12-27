@@ -4,7 +4,15 @@ function allowDrop(ev) {
 
 function drag(ev) {
     ev.dataTransfer.setData("text", ev.target.id);
+    ev.target.classList.add('dragging');
 }
+
+// Add event listener to remove dragging class on dragend
+document.addEventListener('dragend', function (ev) {
+    if (ev.target.classList.contains('kanban-card')) {
+        ev.target.classList.remove('dragging');
+    }
+});
 
 function drop(ev, newStage) {
     ev.preventDefault();
@@ -12,12 +20,21 @@ function drop(ev, newStage) {
     var element = document.getElementById(data);
     var requestId = data.replace('req-', '');
 
+    // Highlight removal (if we add dragging over later)
+    // ev.target.classList.remove('drag-over');
+
     // Find the closest kanban-cards container in the target column
     var targetColumn = document.getElementById('col-' + newStage);
     var cardsContainer = targetColumn.querySelector('.kanban-cards');
 
     // Move element in UI
     cardsContainer.appendChild(element);
+
+    // Update Styles immediately
+    element.classList.remove('stage-New', 'stage-In-Progress', 'stage-Repaired', 'stage-Scrap');
+    // Sanitize newStage string for class name (replace spaces)
+    let safeStage = newStage.replace(/\s+/g, '-');
+    element.classList.add('stage-' + safeStage);
 
     // Update Counts
     updateCounts();
@@ -29,11 +46,10 @@ function drop(ev, newStage) {
 async function updateRequestStage(id, stage) {
     let payload = { id: id, stage: stage };
 
-    // If moving to Repaired, ask for duration
-    if (stage === 'Repaired') {
-        let duration = prompt("Enter hours spent on repair:", "1.0");
-        if (duration) payload.actual_duration = parseFloat(duration);
-    }
+
+    // If moving to Repaired, we no longer ask for duration
+    // if (stage === 'Repaired') { ... }
+
 
     try {
         const response = await fetch('/api/requests/update', {

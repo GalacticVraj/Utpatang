@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container d-flex justify-content-center align-items-center" style="min-height: 85vh;">
+    <div class="card bg-dark text-white shadow-lg p-4"
+        style="width: 450px; border-radius: 15px; border: 1px solid #444;">
+        <div class="card-body">
+            <h3 class="text-center mb-5" style="font-family: 'Inter', sans-serif;">Sign up page</h3>
+
+            <form method="POST" action="/signup">
+                <div class="mb-4">
+                    <label for="name" class="form-label">Name</label>
+                    <input type="text" class="form-control bg-transparent text-white" id="name" name="name" required
+                        style="border: none; border-bottom: 1px solid #aaa; border-radius: 0;">
+                </div>
+
+                <div class="mb-4">
+                    <label for="email" class="form-label">Email id</label>
+                    <input type="email" class="form-control bg-transparent text-white" id="email" name="email" required
+                        style="border: none; border-bottom: 1px solid #aaa; border-radius: 0;">
+                </div>
+
+                <div class="mb-4">
+                    <label for="password" class="form-label">Password</label>
+                    <input type="password" class="form-control bg-transparent text-white" id="password" name="password"
+                        required style="border: none; border-bottom: 1px solid #aaa; border-radius: 0;">
+                </div>
+
+                <div class="mb-5">
+                    <label for="confirm_password" class="form-label">Re-Enter password</label>
+                    <input type="password" class="form-control bg-transparent text-white" id="confirm_password"
+                        name="confirm_password" required
+                        style="border: none; border-bottom: 1px solid #aaa; border-radius: 0;">
+                </div>
+
+                <div class="d-grid mb-3">
+                    <button type="submit" class="btn btn-outline-light btn-lg px-5 mx-auto"
+                        style="border-radius: 10px;">Sign Up</button>
+                </div>
+
+                <div class="text-center">
+                    <small>Already have an account? <a href="/login"
+                            class="text-info text-decoration-none">Login</a></small>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

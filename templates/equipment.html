@@ -31,8 +31,14 @@
                         </select>
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label">Assigned Employee</label>
-                        <input type="text" name="employee" class="form-control">
+                        <label class="form-label">Employee ID</label>
+                        <input type="text" name="employee_id" id="employeeIdField" class="form-control"
+                            placeholder="e.g. EMP001" onblur="fetchEmployeeDetails()">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Employee Name</label>
+                        <input type="text" name="employee" id="employeeNameField" class="form-control bg-light"
+                            readonly>
                     </div>
                     <div class="col-md-4">
                         <label class="form-label">Location</label>
@@ -146,5 +152,52 @@
             }
         });
     });
+
+    // Check for assign_to parameter on load
+    window.addEventListener('DOMContentLoaded', (event) => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const assignTo = urlParams.get('assign_to');
+
+        if (assignTo) {
+            // Open the collapse
+            new bootstrap.Collapse(document.getElementById('addEquipForm'), { toggle: true });
+
+            // Set ID and trigger fetch
+            const empInput = document.getElementById('employeeIdField');
+            empInput.value = assignTo;
+            fetchEmployeeDetails();
+            empInput.focus();
+        }
+    });
+
+    function fetchEmployeeDetails() {
+        const id = document.getElementById('employeeIdField').value.trim();
+        if (!id) return;
+
+        fetch(`/api/employee/${id}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Auto-fill Name
+                    document.getElementById('employeeNameField').value = data.data.name;
+
+                    // Auto-select Department
+                    const deptSelect = document.querySelector('select[name="department"]');
+                    const dept = data.data.department;
+                    // Check if option exists, if not, maybe just leave it or match partially
+                    // For now, try exact match
+                    for (let i = 0; i < deptSelect.options.length; i++) {
+                        if (deptSelect.options[i].value === dept) {
+                            deptSelect.selectedIndex = i;
+                            break;
+                        }
+                    }
+                } else {
+                    alert('Employee not found! Please check the ID.');
+                    document.getElementById('employeeNameField').value = '';
+                }
+            })
+            .catch(err => console.error('Error fetching employee:', err));
+    }
 </script>
 {% endblock %}

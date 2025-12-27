@@ -1,5 +1,5 @@
 from app import app, db
-from models import MaintenanceTeam, Technician, Equipment
+from models import MaintenanceTeam, Technician, Equipment, Employee, WorkCenter
 from datetime import date
 
 def seed():
@@ -51,8 +51,30 @@ def seed():
             )
             db.session.add_all([eq1, eq2])
 
+        if Employee.query.count() == 0:
+            employees = [
+                Employee(employee_id="EMP001", name="John Doe", department="Maintenance", position="Senior Mechanic", email="john.doe@example.com", joining_date=date(2020, 1, 15)),
+                Employee(employee_id="EMP002", name="Jane Smith", department="IT", position="System Admin", email="jane.smith@example.com", joining_date=date(2021, 3, 10)),
+                Employee(employee_id="EMP003", name="Robert Brown", department="Production", position="Operator", email="robert.brown@example.com", joining_date=date(2019, 11, 22)),
+                Employee(employee_id="EMP004", name="Emily White", department="Engineering", position="Process Engineer", email="emily.white@example.com", joining_date=date(2022, 7, 1)),
+                Employee(employee_id="EMP005", name="Michael Green", department="Maintenance", position="Electrician", email="michael.green@example.com", joining_date=date(2021, 5, 5))
+            ]
+            db.session.add_all(employees)
+
         db.session.commit()
         print("Data seeded successfully!")
 
+
+def seed_work_centers():
+    wc1 = WorkCenter(name="Assembly 1", code="WC-001", tag="ASM", active_work_centers="Station 1, Station 2", cost_per_hour=50.0, capacity_efficiency=100.0, oee_target=85.0)
+    wc2 = WorkCenter(name="Drill 1", code="WC-002", tag="DRL", active_work_centers="Drill Press A", cost_per_hour=35.0, capacity_efficiency=95.0, oee_target=90.0)
+    
+    db.session.add(wc1)
+    db.session.add(wc2)
+    db.session.commit()
+    print("Work Centers seeded!")
+
 if __name__ == "__main__":
-    seed()
+    # seed()
+    with app.app_context():
+        seed_work_centers()
