@@ -1,99 +1,628 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="container mt-4">
-    <!-- Metrics Cards -->
-    <div class="row mb-5">
-        <!-- Critical Equipment -->
-        <div class="col-md-4">
-            <a href="/equipment" class="text-decoration-none">
-                <div class="card shadow-sm text-center text-white h-100"
-                    style="background-color: #1a1a1a; border: 1px solid #ff4d4d; border-radius: 12px;">
-                    <div class="card-body d-flex flex-column justify-content-center align-items-center">
-                        <h5 class="card-title text-danger mb-3">Critical Equipment</h5>
-                        <div class="display-4 fw-bold text-danger mb-2">{{ critical_eq_count }} Units</div>
-                        <small class="text-secondary">(Health &lt; 30%)</small>
-                    </div>
-                </div>
-            </a>
-        </div>
+<style>
+    .stat-card {
+        background: #fff;
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        border: 1px solid #e5e7eb;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
 
-        <!-- Technician Load -->
-        <div class="col-md-4">
-            <a href="/teams" class="text-decoration-none">
-                <div class="card shadow-sm text-center text-white h-100"
-                    style="background-color: #1a1a1a; border: 1px solid #007bff; border-radius: 12px;">
-                    <div class="card-body d-flex flex-column justify-content-center align-items-center">
-                        <h5 class="card-title text-primary mb-3">Technician Load</h5>
-                        <div class="display-4 fw-bold text-primary mb-2">{{ tech_load }}% Utilized</div>
-                        <small class="text-secondary">(Assign Carefully)</small>
-                    </div>
-                </div>
-            </a>
-        </div>
+    .stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
 
-        <!-- Open Requests -->
-        <div class="col-md-4">
-            <a href="/kanban" class="text-decoration-none">
-                <div class="card shadow-sm text-center text-white h-100"
-                    style="background-color: #1a1a1a; border: 1px solid #28a745; border-radius: 12px;">
-                    <div class="card-body d-flex flex-column justify-content-center align-items-center">
-                        <h5 class="card-title text-success mb-3">Open Requests</h5>
-                        <div class="mb-1">
-                            <span class="fs-4 fw-bold text-white">{{ pending_count }} Pending</span>
-                        </div>
-                        <div class="text-danger small">{{ overdue_count }} Overdue</div>
-                    </div>
-                </div>
-            </a>
-        </div>
-    </div>
+    .stat-number {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: #1f2937;
+    }
 
-    <div class="row mt-5">
-        <!-- Requests by Team -->
-        <div class="col-md-6 mb-4">
-            <div class="card shadow-sm h-100">
-                <div class="card-header bg-white fw-bold">Requests by Maintenance Team</div>
-                <div class="card-body">
-                    {% for team, count in team_reports %}
-                    <div class="mb-3">
-                        <div class="d-flex justify-content-between align-items-center mb-1">
-                            <span class="text-truncate" style="max-width: 70%;">{{ team }}</span>
-                            <span class="fw-bold text-primary">{{ count }}</span>
-                        </div>
-                        <div class="progress mb-2" style="height: 8px;">
-                            <div class="progress-bar bg-primary" role="progressbar" style="width: 50%;"></div>
-                        </div>
-                    </div>
-                    {% endfor %}
-                    {% if not team_reports %}
-                    <p class="text-muted text-center">No data available.</p>
+    .stat-label {
+        color: #6b7280;
+        font-size: 0.95rem;
+        margin-top: 0.25rem;
+    }
+
+    .stat-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+        color: #fff;
+    }
+
+    .stat-icon.blue {
+        background: linear-gradient(135deg, #3b82f6, #2563eb);
+    }
+
+    .stat-icon.orange {
+        background: linear-gradient(135deg, #f97316, #ea580c);
+    }
+
+    .stat-icon.red {
+        background: linear-gradient(135deg, #ef4444, #dc2626);
+    }
+
+    .stat-icon.green {
+        background: linear-gradient(135deg, #10b981, #059669);
+    }
+
+    .stat-trend {
+        padding: 0.5rem 0.75rem;
+        border-radius: 8px;
+        font-size: 0.85rem;
+        font-weight: 500;
+        margin-top: 1rem;
+    }
+
+    .stat-trend.up {
+        background: #d1fae5;
+        color: #059669;
+    }
+
+    .stat-trend.down {
+        background: #fee2e2;
+        color: #dc2626;
+    }
+
+    .section-card {
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        border: 1px solid #e5e7eb;
+    }
+
+    .section-header {
+        padding: 1rem 1.25rem;
+        border-bottom: 1px solid #e5e7eb;
+        font-weight: 600;
+        font-size: 1rem;
+        color: #1f2937;
+    }
+
+    .section-header i {
+        margin-right: 0.5rem;
+        color: #3b82f6;
+    }
+
+    .activity-item {
+        display: flex;
+        align-items: flex-start;
+        padding: 1rem 1.25rem;
+        border-bottom: 1px solid #f3f4f6;
+    }
+
+    .activity-item:last-child {
+        border-bottom: none;
+    }
+
+    .activity-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 1rem;
+        font-size: 1rem;
+    }
+
+    .activity-icon.blue {
+        background: #dbeafe;
+        color: #3b82f6;
+    }
+
+    .activity-icon.purple {
+        background: #ede9fe;
+        color: #7c3aed;
+    }
+
+    .activity-icon.green {
+        background: #d1fae5;
+        color: #059669;
+    }
+
+    .activity-icon.orange {
+        background: #ffedd5;
+        color: #ea580c;
+    }
+
+    .activity-content h6 {
+        margin: 0;
+        font-weight: 600;
+        color: #1f2937;
+    }
+
+    .activity-content p {
+        margin: 0.25rem 0 0;
+        color: #6b7280;
+        font-size: 0.875rem;
+    }
+
+    .activity-time {
+        color: #9ca3af;
+        font-size: 0.8rem;
+    }
+
+    .quick-action {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 1.5rem 1rem;
+        border-radius: 12px;
+        border: 2px solid #e5e7eb;
+        background: #f9fafb;
+        text-decoration: none;
+        color: #1f2937;
+        transition: all 0.2s;
+        cursor: pointer;
+    }
+
+    .quick-action:hover {
+        background: #dbeafe;
+        border-color: #3b82f6;
+        color: #2563eb;
+    }
+
+    .quick-action i {
+        font-size: 1.5rem;
+        margin-bottom: 0.5rem;
+        color: #3b82f6;
+    }
+
+    .quick-action span {
+        font-weight: 600;
+        font-size: 0.9rem;
+    }
+
+    .search-box {
+        background: #f9fafb;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 0.5rem 1rem;
+        width: 280px;
+    }
+
+    .search-box:focus {
+        outline: none;
+        border-color: #3b82f6;
+        background: #fff;
+    }
+
+    .notification-btn {
+        position: relative;
+        background: #f3f4f6;
+        border: none;
+        border-radius: 10px;
+        width: 42px;
+        height: 42px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+    }
+
+    .notification-badge {
+        position: absolute;
+        top: -4px;
+        right: -4px;
+        background: #ef4444;
+        color: #fff;
+        font-size: 0.7rem;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .chart-container {
+        position: relative;
+        height: 250px;
+    }
+
+    .report-modal .modal-dialog {
+        max-width: 900px;
+    }
+
+    .report-header {
+        text-align: center;
+        padding: 2rem 0;
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    .report-header h2 {
+        font-weight: 700;
+        color: #1f2937;
+    }
+
+    .report-header p {
+        color: #6b7280;
+    }
+
+    .report-stat-card {
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        padding: 1.25rem;
+        text-align: center;
+    }
+
+    .report-stat-card h3 {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #3b82f6;
+        margin-bottom: 0.25rem;
+    }
+
+    .report-stat-card p {
+        color: #6b7280;
+        margin: 0;
+        font-size: 0.9rem;
+    }
+
+    .report-table {
+        width: 100%;
+    }
+
+    .report-table th {
+        background: #f9fafb;
+        padding: 0.75rem 1rem;
+        text-align: left;
+        font-weight: 600;
+        color: #374151;
+        border-bottom: 2px solid #e5e7eb;
+    }
+
+    .report-table td {
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid #f3f4f6;
+        color: #4b5563;
+    }
+
+    .report-footer {
+        text-align: center;
+        padding: 1.5rem;
+        border-top: 1px solid #e5e7eb;
+        background: #f9fafb;
+    }
+
+    @media print {
+        .no-print {
+            display: none !important;
+        }
+    }
+</style>
+
+<div class="container-fluid py-4" style="background: #f8fafc; min-height: 100vh;">
+    <div class="container">
+        <!-- Header -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h2 class="fw-bold mb-1">Maintenance Dashboard</h2>
+                <p class="text-muted mb-0">Monitor and manage all maintenance activities</p>
+            </div>
+            <div class="d-flex align-items-center gap-3">
+                <input type="text" class="search-box" placeholder="Search requests, equipment...">
+                <button class="notification-btn">
+                    <i class="fa-solid fa-bell"></i>
+                    {% if overdue_count > 0 %}
+                    <span class="notification-badge">{{ overdue_count }}</span>
                     {% endif %}
+                </button>
+                <a href="/create_request" class="btn btn-primary" style="border-radius: 8px; padding: 0.5rem 1rem;">
+                    <i class="fa-solid fa-plus me-1"></i> New Request
+                </a>
+            </div>
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="row g-4 mb-4">
+            <div class="col-md-3">
+                <div class="stat-card d-flex justify-content-between">
+                    <div>
+                        <div class="stat-number">{{ active_req_count }}</div>
+                        <div class="stat-label">Active Requests</div>
+                        <div class="stat-trend up"><i class="fa-solid fa-arrow-up me-1"></i>12% from last week</div>
+                    </div>
+                    <div class="stat-icon blue"><i class="fa-solid fa-list-check"></i></div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card d-flex justify-content-between">
+                    <div>
+                        <div class="stat-number">{{ overdue_count }}</div>
+                        <div class="stat-label">Overdue Tasks</div>
+                        <div class="stat-trend down"><i class="fa-solid fa-arrow-up me-1"></i>{{ overdue_count }} new
+                            today</div>
+                    </div>
+                    <div class="stat-icon orange"><i class="fa-solid fa-clock"></i></div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card d-flex justify-content-between">
+                    <div>
+                        <div class="stat-number">{{ critical_eq_count }}</div>
+                        <div class="stat-label">Critical Issues</div>
+                        <div class="stat-trend down"><i class="fa-solid fa-arrow-up me-1"></i>{{ critical_eq_count }}
+                            need attention</div>
+                    </div>
+                    <div class="stat-icon red"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card d-flex justify-content-between">
+                    <div>
+                        <div class="stat-number">{{ completed_count }}</div>
+                        <div class="stat-label">Completed</div>
+                        <div class="stat-trend up"><i class="fa-solid fa-arrow-up me-1"></i>18% increase</div>
+                    </div>
+                    <div class="stat-icon green"><i class="fa-solid fa-circle-check"></i></div>
                 </div>
             </div>
         </div>
 
-        <!-- Requests by Category -->
-        <div class="col-md-6 mb-4">
-            <div class="card shadow-sm h-100">
-                <div class="card-header bg-white fw-bold">Requests by Equipment Category (Dept)</div>
-                <div class="card-body">
-                    {% for dept, count in dept_reports %}
-                    <div class="mb-3">
-                        <div class="d-flex justify-content-between align-items-center mb-1">
-                            <span class="text-truncate" style="max-width: 70%;">{{ dept }}</span>
-                            <span class="fw-bold text-info">{{ count }}</span>
+        <!-- Charts Row -->
+        <div class="row g-4 mb-4">
+            <div class="col-md-6">
+                <div class="section-card h-100">
+                    <div class="section-header"><i class="fa-solid fa-chart-pie"></i> Request Status Distribution</div>
+                    <div class="card-body">
+                        <div class="chart-container"><canvas id="statusChart"></canvas></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="section-card h-100">
+                    <div class="section-header"><i class="fa-solid fa-chart-bar"></i> Requests by Team</div>
+                    <div class="card-body">
+                        <div class="chart-container"><canvas id="teamChart"></canvas></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Activity and Quick Actions -->
+        <div class="row g-4 mb-4">
+            <div class="col-md-7">
+                <div class="section-card">
+                    <div class="section-header"><i class="fa-solid fa-clock-rotate-left"></i> Recent Activity</div>
+                    <div id="activityList">
+                        {% for req in recent_requests[:5] %}
+                        <div class="activity-item">
+                            <div
+                                class="activity-icon {% if req.stage == 'Repaired' %}green{% elif req.stage == 'In Progress' %}blue{% elif req.stage == 'New' %}purple{% else %}orange{% endif %}">
+                                {% if req.stage == 'Repaired' %}<i class="fa-solid fa-check"></i>
+                                {% elif req.stage == 'In Progress' %}<i class="fa-solid fa-forward"></i>
+                                {% else %}<i class="fa-solid fa-user"></i>{% endif %}
+                            </div>
+                            <div class="activity-content flex-grow-1">
+                                <h6>{{ req.subject or 'Maintenance Request' }}</h6>
+                                <p>REQ-{{ '%03d'|format(req.id) }} - {{ req.stage }} {% if req.technician %}({{
+                                    req.technician }}){% endif %}</p>
+                            </div>
+                            <span class="activity-time">{{ req.created_at.strftime('%b %d') if req.created_at else
+                                'Today' }}</span>
                         </div>
-                        <div class="progress mb-2" style="height: 8px;">
-                            <div class="progress-bar bg-info" role="progressbar" style="width: 50%;"></div>
+                        {% else %}
+                        <div class="p-4 text-center text-muted">
+                            <i class="fa-solid fa-inbox fa-2x mb-2"></i>
+                            <p class="mb-0">No recent activity</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-5">
+                <div class="section-card">
+                    <div class="section-header"><i class="fa-solid fa-bolt"></i> Quick Actions</div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-6">
+                                <a href="/create_request" class="quick-action">
+                                    <i class="fa-solid fa-calendar-plus"></i><span>Schedule PM</span>
+                                </a>
+                            </div>
+                            <div class="col-6">
+                                <div class="quick-action" data-bs-toggle="modal" data-bs-target="#reportModal"
+                                    style="background: #dbeafe; border-color: #3b82f6;">
+                                    <i class="fa-solid fa-file-lines"></i><span>Generate Report</span>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <a href="/equipment" class="quick-action">
+                                    <i class="fa-solid fa-boxes-stacked"></i><span>Check Inventory</span>
+                                </a>
+                            </div>
+                            <div class="col-6">
+                                <a href="/teams" class="quick-action">
+                                    <i class="fa-solid fa-users"></i><span>Assign Team</span>
+                                </a>
+                            </div>
                         </div>
                     </div>
-                    {% endfor %}
-                    {% if not dept_reports %}
-                    <p class="text-muted text-center">No data available.</p>
-                    {% endif %}
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<!-- Report Modal -->
+<div class="modal fade report-modal" id="reportModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-body p-0" id="reportContent">
+                <div class="report-header">
+                    <h2>Maintenance Activity Report</h2>
+                    <p>Generated on {{ current_date }}</p>
+                </div>
+                <div class="p-4">
+                    <h5 class="fw-bold mb-3">Summary Statistics</h5>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-3">
+                            <div class="report-stat-card">
+                                <h3>{{ active_req_count }}</h3>
+                                <p>Active Requests</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="report-stat-card">
+                                <h3>{{ overdue_count }}</h3>
+                                <p>Overdue Tasks</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="report-stat-card">
+                                <h3>{{ critical_eq_count }}</h3>
+                                <p>Critical Issues</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="report-stat-card">
+                                <h3>{{ completed_count }}</h3>
+                                <p>Completed</p>
+                            </div>
+                        </div>
+                    </div>
+                    <h5 class="fw-bold mb-3">Recent Maintenance Requests</h5>
+                    <div class="table-responsive mb-4">
+                        <table class="report-table">
+                            <thead>
+                                <tr>
+                                    <th>Request ID</th>
+                                    <th>Title</th>
+                                    <th>Equipment</th>
+                                    <th>Priority</th>
+                                    <th>Status</th>
+                                    <th>Assigned To</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for req in all_requests[:10] %}
+                                <tr>
+                                    <td>REQ-{{ '%03d'|format(req.id) }}</td>
+                                    <td>{{ req.subject or 'N/A' }}</td>
+                                    <td>{{ req.equipment_name or 'N/A' }}</td>
+                                    <td>{% if req.priority == 3 %}critical{% elif req.priority == 2 %}high{% elif
+                                        req.priority == 1 %}medium{% else %}low{% endif %}</td>
+                                    <td>{{ req.stage|lower }}</td>
+                                    <td>{{ req.technician or 'Unassigned' }}</td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="6" class="text-center text-muted">No requests found</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <h5 class="fw-bold mb-3">Team Performance</h5>
+                    <div class="table-responsive">
+                        <table class="report-table">
+                            <thead>
+                                <tr>
+                                    <th>Team</th>
+                                    <th>Total Requests</th>
+                                    <th>Completed Tasks</th>
+                                    <th>Completion Rate</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for team in teams_data %}
+                                <tr>
+                                    <td>{{ team[0] or 'Unassigned' }}</td>
+                                    <td>{{ team[1] }}</td>
+                                    <td>{{ team[2] or 0 }}</td>
+                                    <td>{{ ((team[2] or 0) / team[1] * 100)|round|int if team[1] > 0 else 0 }}%</td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="4" class="text-center text-muted">No team data available</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="report-footer">
+                    <p class="text-muted mb-3">GearGuard Maintenance Management System • This report was automatically
+                        generated</p>
+                    <button class="btn btn-primary me-2 no-print" onclick="printReport()"><i
+                            class="fa-solid fa-print me-1"></i> Print Report</button>
+                    <button class="btn btn-outline-secondary no-print" data-bs-dismiss="modal"><i
+                            class="fa-solid fa-xmark me-1"></i> Close Report</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        var statusData = JSON.parse('{{ status_data | tojson | safe }}');
+        var statusLabels = Object.keys(statusData);
+        var statusValues = Object.values(statusData);
+        var statusColors = ['#3b82f6', '#f97316', '#10b981', '#ef4444', '#8b5cf6', '#6b7280'];
+
+        if (statusLabels.length > 0) {
+            new Chart(document.getElementById('statusChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: statusLabels,
+                    datasets: [{ data: statusValues, backgroundColor: statusColors.slice(0, statusLabels.length), borderWidth: 0 }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'right' } },
+                    cutout: '60%'
+                }
+            });
+        }
+
+        var teamReports = JSON.parse('{{ team_reports | tojson | safe }}');
+        var teamLabels = teamReports.map(function (t) { return t[0] || 'Unknown'; });
+        var teamValues = teamReports.map(function (t) { return t[1]; });
+
+        if (teamLabels.length > 0) {
+            new Chart(document.getElementById('teamChart'), {
+                type: 'bar',
+                data: {
+                    labels: teamLabels,
+                    datasets: [{ label: 'Requests', data: teamValues, backgroundColor: '#3b82f6', borderRadius: 8 }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, grid: { display: false } },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+        }
+    });
+
+    function printReport() {
+        var content = document.getElementById('reportContent').innerHTML;
+        var printWindow = window.open('', '_blank');
+        printWindow.document.write('<html><head><title>Maintenance Report</title>');
+        printWindow.document.write('<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">');
+        printWindow.document.write('<style>.no-print{display:none!important}.report-header{text-align:center;padding:2rem 0;border-bottom:1px solid #e5e7eb}.report-stat-card{border:1px solid #e5e7eb;border-radius:10px;padding:1.25rem;text-align:center}.report-stat-card h3{font-size:2rem;font-weight:700;color:#3b82f6}.report-table{width:100%;border-collapse:collapse}.report-table th{background:#f9fafb;padding:.75rem 1rem;text-align:left;font-weight:600;border-bottom:2px solid #e5e7eb}.report-table td{padding:.75rem 1rem;border-bottom:1px solid #f3f4f6}.report-footer{text-align:center;padding:1.5rem;border-top:1px solid #e5e7eb}</style></head><body>');
+        printWindow.document.write(content);
+        printWindow.document.write('</body></html>');
+        printWindow.document.close();
+        printWindow.onload = function () { printWindow.print(); };
+    }
+</script>
 {% endblock %}

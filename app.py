@@ -25,7 +25,8 @@ def inject_globals():
     return {
         'now': datetime.utcnow(),
         'date': date,
-        'datetime': datetime
+        'datetime': datetime,
+        'current_date': datetime.now().strftime('%B %d, %Y')
     }
 
 @app.route('/')
@@ -36,7 +37,7 @@ def dashboard():
     # 1. Critical Equipment (Health < 30)
     critical_eq_count = Equipment.query.filter(Equipment.health_score < 30).count()
     
-    # 2. Technician Load
+    # 2. Active Requests (not completed/scrapped)
     active_req_count = MaintenanceRequest.query.filter(MaintenanceRequest.stage.notin_(['Repaired', 'Scrap'])).count()
     tech_load = min(int((active_req_count / 5) * 100), 100)
     
@@ -46,9 +47,34 @@ def dashboard():
         MaintenanceRequest.stage.notin_(['Repaired', 'Scrap']),
         MaintenanceRequest.scheduled_date < date.today()
     ).count()
+    
+    # 4. Completed count
+    completed_count = MaintenanceRequest.query.filter(MaintenanceRequest.stage == 'Repaired').count()
 
-    team_reports = db.session.query(MaintenanceRequest.team, func.count(MaintenanceRequest.id)).group_by(MaintenanceRequest.team).all()
-    dept_reports = db.session.query(Equipment.department, func.count(MaintenanceRequest.id)).join(MaintenanceRequest, Equipment.id == MaintenanceRequest.equipment_id).group_by(Equipment.department).all()
+    # 5. Team reports - convert to list of tuples for JSON serialization
+    team_reports_raw = db.session.query(MaintenanceRequest.team, func.count(MaintenanceRequest.id)).group_by(MaintenanceRequest.team).all()
+    team_reports = [(t[0], t[1]) for t in team_reports_raw]
+    
+    dept_reports_raw = db.session.query(Equipment.department, func.count(MaintenanceRequest.id)).join(MaintenanceRequest, Equipment.id == MaintenanceRequest.equipment_id).group_by(Equipment.department).all()
+    dept_reports = [(d[0], d[1]) for d in dept_reports_raw]
+    
+    # 6. Recent requests (last 10)
+    recent_requests = MaintenanceRequest.query.order_by(MaintenanceRequest.created_at.desc()).limit(10).all()
+    
+    # 7. All active requests for report
+    all_requests = MaintenanceRequest.query.order_by(MaintenanceRequest.created_at.desc()).all()
+    
+    # 8. Status distribution for chart
+    status_counts = db.session.query(MaintenanceRequest.stage, func.count(MaintenanceRequest.id)).group_by(MaintenanceRequest.stage).all()
+    status_data = {stage: count for stage, count in status_counts}
+    
+    # 9. Teams data for report - convert to list of tuples
+    teams_data_raw = db.session.query(
+        MaintenanceRequest.team,
+        func.count(MaintenanceRequest.id).label('total'),
+        func.sum(db.case((MaintenanceRequest.stage == 'Repaired', 1), else_=0)).label('completed')
+    ).group_by(MaintenanceRequest.team).all()
+    teams_data = [(t[0], t[1], t[2] or 0) for t in teams_data_raw]
     
     return render_template('dashboard.html', 
                            team_reports=team_reports, 
@@ -56,7 +82,13 @@ def dashboard():
                            critical_eq_count=critical_eq_count,
                            tech_load=tech_load,
                            pending_count=pending_count,
-                           overdue_count=overdue_count)
+                           overdue_count=overdue_count,
+                           completed_count=completed_count,
+                           active_req_count=active_req_count,
+                           recent_requests=recent_requests,
+                           all_requests=all_requests,
+                           status_data=status_data,
+                           teams_data=teams_data)
 
 @app.route('/work_centers')
 @login_required
