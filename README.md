@@ -35,17 +35,18 @@
 
 ```
 gearguard/              # Root Project Directory
-├── gear_guard/         # Application Source Code
-│   ├── templates/      # HTML Templates
-│   ├── static/         # CSS & JS Files
-│   ├── app.py          # Main Application Entry Point
-│   ├── models.py       # Database Models
-│   ├── config.py       # Configuration Settings
-│   └── extensions.py   # Extensions (DB, Migrate)
-└── instance/           # Database Storage (sqlite)
+├── templates/          # HTML Templates
+├── static/             # CSS & JS Files
+├── instance/           # Database Storage (sqlite)
+├── app.py              # Main Application Entry Point
+├── models.py           # Database Models
+├── config.py           # Configuration Settings
+├── extensions.py       # Extensions (DB, Migrate)
+├── init_db.py          # Database Initialization Script
+└── verify_app.py       # Verification Script
 ```
 
-> **Note**: The core logic resides in the `gear_guard` package.
+> **Note**: All core application files are now in the root directory.
 
 ---
 
@@ -71,14 +72,12 @@ Follow these steps to get the project running on your local machine.
 3.  **Initialize the Database**:
     We have provided a helper script to set up the tables.
     ```bash
-    cd gear_guard
     python init_db.py
     ```
 
 ### 3. Running the Application
 
 1.  **Start the Server**:
-    (Make sure you are in the `gear_guard` directory)
     ```bash
     python app.py
     ```
