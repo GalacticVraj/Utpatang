@@ -1,42 +1,4 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="container mt-4">
-    <h1>Create Maintenance Request</h1>
-
-    <div class="card">
-        <div class="card-body">
-            <form method="POST" action="/create_request">
-                <div class="mb-3">
-                    <label>Subject</label>
-                    <input type="text" name="subject" class="form-control" required>
-                </div>
-
-                <div class="mb-3">
-                    <label>Request Type</label>
-                    <select name="type" class="form-select">
-                        <option value="Corrective">Corrective</option>
-                        <option value="Preventive">Preventive</option>
-                    </select>
-                </div>
-
-                <div class="mb-3">
-                    <label>Select Equipment</label>
-                    <select name="equipment_id" class="form-select" required>
-                        <option value="">-- Choose Equipment --</option>
-                        {% for eq in equipment %}
-                        <option value="{{ eq.id }}">{{ eq.name }} ({{ eq.serial_number }})</option>
-                        {% endfor %}
-                    </select>
-                </div>
-
-                <div class="mb-3">
-                    <label>Scheduled Date</label>
-                    <input type="date" name="scheduled_date" class="form-control">
-                </div>
-
-                <button type="submit" class="btn btn-success">Create Request</button>
-            </form>
-        </div>
-    </div>
-</div>
+<h1>Request Form</h1>
 {% endblock %}
