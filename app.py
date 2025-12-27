@@ -6,6 +6,7 @@ import re
 from config import Config
 from extensions import db
 from models import *
+from datetime import date, datetime
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -19,22 +20,27 @@ login_manager.login_view = 'login'
 def load_user(user_id):
     return User.query.get(int(user_id))
 
+@app.context_processor
+def inject_globals():
+    return {
+        'now': datetime.utcnow(),
+        'date': date,
+        'datetime': datetime
+    }
+
 @app.route('/')
 @login_required
 def dashboard():
-    # Reports
     from sqlalchemy import func
-    from datetime import date
     
     # 1. Critical Equipment (Health < 30)
     critical_eq_count = Equipment.query.filter(Equipment.health_score < 30).count()
     
-    # 2. Technician Load (Utilization)
-    # Assumption: 5 active requests = 100% load
+    # 2. Technician Load
     active_req_count = MaintenanceRequest.query.filter(MaintenanceRequest.stage.notin_(['Repaired', 'Scrap'])).count()
     tech_load = min(int((active_req_count / 5) * 100), 100)
     
-    # 3. Open Requests (Pending & Overdue)
+    # 3. Open Requests
     pending_count = MaintenanceRequest.query.filter(MaintenanceRequest.stage.in_(['New', 'In Progress'])).count()
     overdue_count = MaintenanceRequest.query.filter(
         MaintenanceRequest.stage.notin_(['Repaired', 'Scrap']),
@@ -42,10 +48,6 @@ def dashboard():
     ).count()
 
     team_reports = db.session.query(MaintenanceRequest.team, func.count(MaintenanceRequest.id)).group_by(MaintenanceRequest.team).all()
-    
-    # Dept reports (Join logic might need adjustment for Work Center requests if they don't have dept)
-    # For now, keeping it simple or filtering for requests with equipment_id is not null?
-    # Or just use equipment_id join roughly.
     dept_reports = db.session.query(Equipment.department, func.count(MaintenanceRequest.id)).join(MaintenanceRequest, Equipment.id == MaintenanceRequest.equipment_id).group_by(Equipment.department).all()
     
     return render_template('dashboard.html', 
@@ -61,6 +63,29 @@ def dashboard():
 def list_work_centers():
     work_centers = WorkCenter.query.all()
     return render_template('work_centers.html', work_centers=work_centers)
+
+@app.route('/teams')
+@login_required
+def teams():
+    # Use distinct to avoid duplicates if migration ran twice
+    teams = MaintenanceTeam.query.group_by(MaintenanceTeam.team_name).all()
+    team_members = {}
+    active_request_counts = {}
+    
+    for team in teams:
+        # Get Members
+        members = Technician.query.filter_by(team_id=team.id).all()
+        team_members[team.team_name] = members
+        
+        # Get Request Count
+        # Count requests where team matches team name and stage is not closed
+        count = MaintenanceRequest.query.filter(
+            MaintenanceRequest.team == team.team_name,
+            MaintenanceRequest.stage.notin_(['Repaired', 'Scrap'])
+        ).count()
+        active_request_counts[team.team_name] = count
+        
+    return render_template('teams.html', teams=teams, team_members=team_members, active_request_counts=active_request_counts)
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -95,11 +120,6 @@ def signup():
             flash("Passwords do not match!", "danger")
             return redirect(url_for('signup'))
             
-        # Password Validation
-        # At least one lowercase, one uppercase, one special char, length > 8
-        pattern = r"^(?=.*[a-z])(?=.*[A-Z])(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{9,}$"
-        # Note: User said "more then 8 characters", so {9,} or {8,}? usually means >=8. 
-        # "length should be in more then 8 charachters" -> > 8 -> 9+
         if len(password) <= 8:
              flash("Password length must be more than 8 characters", "danger")
              return redirect(url_for('signup'))
@@ -114,7 +134,6 @@ def signup():
              flash("Password must contain at least one special character (@$!%*?&)", "danger")
              return redirect(url_for('signup'))
 
-        # Check existing user
         if User.query.filter_by(email=email).first():
             flash("Email Id should not be a duplicate in database", "danger")
             return redirect(url_for('signup'))
@@ -138,15 +157,20 @@ def logout():
 @login_required
 def equipment():
     if request.method == "POST":
+        # Handle optional integer fields
+        wc_id = request.form.get("work_center_id")
+        wc_id = int(wc_id) if wc_id else None
+        
         eq = Equipment(
             name=request.form["name"],
             serial_number=request.form["serial"],
             department=request.form["department"],
             assigned_employee=request.form["employee"],
-            employee_id=request.form.get("employee_id"), # Capture ID
+            employee_id=request.form.get("employee_id"),
             maintenance_team=request.form["team"],
             default_technician=request.form["technician"],
-            location=request.form["location"]
+            location=request.form["location"],
+            work_center_id=wc_id
         )
         db.session.add(eq)
         db.session.commit()
@@ -154,31 +178,41 @@ def equipment():
         return redirect("/equipment")
 
     all_equipment = Equipment.query.all()
-    # Attach open request counts
     for eq in all_equipment:
         eq.open_requests_count = MaintenanceRequest.query.filter(
             MaintenanceRequest.equipment_id == eq.id,
             MaintenanceRequest.stage.notin_(["Repaired", "Scrap"])
         ).count()
         
-    return render_template("equipment.html", equipment=all_equipment)
+    work_centers = WorkCenter.query.all()
+    return render_template("equipment.html", equipment=all_equipment, work_centers=work_centers)
 
 @app.route("/create_request", methods=["GET", "POST"])
 @login_required
 def create_request():
     equipment = Equipment.query.all()
-    
-    # Pre-fill from query params if available (e.g. from calendar)
     pre_date = request.args.get('date', '')
     pre_type = request.args.get('type', 'Corrective')
 
     if request.method == "POST":
         maintenance_for = request.form.get("maintenance_for", "Equipment")
         
+        try:
+            priority = int(request.form.get("priority", 0))
+        except:
+            priority = 0
+            
+        try:
+            duration = float(request.form.get("duration", 0.0))
+        except:
+            duration = 0.0
+
         req = MaintenanceRequest(
             subject=request.form["subject"],
-            request_type=request.form["type"],
+            request_type=request.form.get("type", "Corrective"),
             maintenance_for=maintenance_for,
+            priority=priority,
+            duration=duration,
             scheduled_date=None
         )
 
@@ -189,21 +223,26 @@ def create_request():
             req.team = eq.maintenance_team
             req.technician = eq.default_technician
         else:
-            wc = WorkCenter.query.get(request.form["work_center_id"])
-            req.work_center_id = wc.id
-            req.equipment_name = wc.name # Reuse display field
-            req.team = "Maintenance" # Default for WC
-            req.technician = "Unassigned"
+            wc_id = request.form.get("work_center_id")
+            if wc_id:
+                wc = WorkCenter.query.get(wc_id)
+                req.work_center_id = wc.id
+                req.equipment_name = wc.name 
+                req.team = "Maintenance" 
+                req.technician = "Unassigned"
+            else:
+                # Fallback if WC not selected
+                req.equipment_name = "Unknown Work Center"
         
-        # Simple date handling if provided
         if request.form.get("scheduled_date"):
-            # assuming format YYYY-MM-DD from HTML date input
-            from datetime import datetime
             date_str = request.form.get("scheduled_date")
             try:
-                req.scheduled_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+                if 'T' in date_str:
+                    req.scheduled_date = datetime.strptime(date_str, '%Y-%m-%dT%H:%M').date()
+                else:
+                    req.scheduled_date = datetime.strptime(date_str, '%Y-%m-%d').date()
             except ValueError:
-                pass # or handle error
+                pass 
 
         db.session.add(req)
         db.session.commit()
@@ -211,7 +250,8 @@ def create_request():
         return redirect("/kanban")
 
     work_centers = WorkCenter.query.all()
-    return render_template("request_form.html", equipment=equipment, work_centers=work_centers, pre_date=pre_date, pre_type=pre_type)
+    today_date = date.today().strftime('%m/%d/%Y')
+    return render_template("request_form.html", equipment=equipment, work_centers=work_centers, pre_date=pre_date, pre_type=pre_type, today_date=today_date)
 
 @app.route('/kanban')
 @login_required
@@ -233,14 +273,12 @@ def update_request():
     
     req.stage = new_stage
     
-    # Scrap Logic: If moved to Scrap, set equipment as scrapped
     if new_stage == "Scrap":
-        eq = Equipment.query.get(req.equipment_id)
-        if eq:
-            eq.is_scrapped = True
+        if req.equipment_id:
+            eq = Equipment.query.get(req.equipment_id)
+            if eq:
+                eq.is_scrapped = True
             
-    # If completed/repaired, we might want to ask for duration, but for now just move it
-    # Duration could be sent in the same payload or a separate call
     if 'actual_duration' in data:
         req.actual_duration = data['actual_duration']
 
@@ -257,16 +295,19 @@ def equipment_maintenance(id):
 @app.route('/calendar')
 @login_required
 def calendar():
-    preventive_requests = MaintenanceRequest.query.filter_by(request_type='Preventive').all()
-    # Format for FullCalendar
+    # Show ALL requests
+    all_requests = MaintenanceRequest.query.all()
     events = []
-    for req in preventive_requests:
+    for req in all_requests:
         if req.scheduled_date:
+            color = '#28a745' if req.request_type == 'Preventive' else '#dc3545'
             events.append({
                 'title': f"{req.equipment_name}: {req.subject}",
                 'start': req.scheduled_date.isoformat(),
+                'date': req.scheduled_date.isoformat(), # For new calendar
+                'type': req.request_type, # For new calendar logic
                 'id': req.id,
-                'color': '#28a745'
+                'color': color
             })
     return render_template('calendar.html', events=events)
 

@@ -1,99 +1,281 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="container mt-4">
-    <div class="row justify-content-center">
-        <div class="col-md-6">
-            <div class="card shadow">
-                <div class="card-header bg-primary text-white">
-                    <h3 class="mb-0">Create Maintenance Request</h3>
+<style>
+    /* Styling for Priority Stars */
+    .rating {
+        display: flex;
+        flex-direction: row-reverse;
+        justify-content: flex-end;
+    }
+
+    .rating input {
+        display: none;
+    }
+
+    .rating label {
+        cursor: pointer;
+        width: 25px;
+        height: 25px;
+        margin: 0;
+        padding: 0;
+        font-size: 25px;
+        line-height: 25px;
+        color: #ccc;
+    }
+
+    .rating input:checked~label,
+    .rating label:hover,
+    .rating label:hover~label {
+        color: #ffc107;
+    }
+
+    /* Breadcrumbs */
+    .breadcrumb-steps {
+        display: flex;
+        gap: 0;
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .breadcrumb-steps li {
+        background: #e9ecef;
+        color: #6c757d;
+        padding: 8px 16px;
+        position: relative;
+        font-size: 0.9em;
+        font-weight: 500;
+        margin-right: 2px;
+        clip-path: polygon(0 0, 90% 0, 100% 50%, 90% 100%, 0 100%, 10% 50%);
+        padding-left: 20px;
+    }
+
+    .breadcrumb-steps li:first-child {
+        clip-path: polygon(0 0, 90% 0, 100% 50%, 90% 100%, 0 100%);
+        padding-left: 16px;
+    }
+
+    .breadcrumb-steps li.active {
+        background: #0d6efd;
+        color: white;
+    }
+</style>
+
+<div class="container-fluid px-4 py-3">
+    <!-- Header with Breadcrumbs and Smart Button -->
+    <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-2">
+        <div class="d-flex align-items-center gap-3">
+            <h4 class="mb-0">New Request</h4>
+            <span class="text-muted">/</span>
+            <span class="text-muted">Test activity</span>
+        </div>
+        <div class="d-flex gap-2">
+            <!-- Breadcrumbs simulating stage -->
+            <ul class="breadcrumb-steps">
+                <li class="active">New Request</li>
+                <li>In Progress</li>
+                <li>Repaired</li>
+                <li>Scrap</li>
+            </ul>
+            <!-- Smart Button -->
+            <button class="btn btn-outline-secondary d-flex align-items-center gap-2 bg-white shadow-sm">
+                <i class="bi bi-pencil-square text-danger"></i>
+                <div class="text-start">
+                    <div class="small fw-bold">Worksheet</div>
+                    <div class="small text-muted" style="font-size: 0.7em;">0 entries</div>
                 </div>
-                <div class="card-body">
-                    <form method="POST">
-                        <div class="mb-3">
-                            <label class="form-label">Subject</label>
-                            <input type="text" name="subject" class="form-control" placeholder="e.g. Motor vibrating"
-                                required>
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Form -->
+    <div class="card shadow-sm border-0">
+        <div class="card-body">
+            <form method="POST">
+                <div class="row">
+                    <!-- Left Column -->
+                    <div class="col-md-6">
+                        <div class="mb-4">
+                            <label class="form-label h3 mb-3 text-muted">Subject?</label>
+                            <input type="text" name="subject"
+                                class="form-control form-control-lg border-0 border-bottom rounded-0 ps-0"
+                                placeholder="e.g. Motor vibrating" required style="font-size: 2rem;">
                         </div>
 
-                        <div class="mb-3">
-                            <label class="form-label">Request Type</label>
-                            <select name="type" class="form-select">
-                                <option value="Corrective" {% if pre_type=='Corrective' %}selected{% endif %}>Corrective
-                                </option>
-                                <option value="Preventive" {% if pre_type=='Preventive' %}selected{% endif %}>Preventive
-                                </option>
-                            </select>
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label d-block">Maintenance For</label>
-                            <div class="form-check form-check-inline">
-                                <input class="form-check-input" type="radio" name="maintenance_for" id="for_equipment"
-                                    value="Equipment" checked onchange="toggleMaintenanceFor()">
-                                <label class="form-check-label" for="for_equipment">Equipment</label>
-                            </div>
-                            <div class="form-check form-check-inline">
-                                <input class="form-check-input" type="radio" name="maintenance_for" id="for_work_center"
-                                    value="Work Center" onchange="toggleMaintenanceFor()">
-                                <label class="form-check-label" for="for_work_center">Work Center</label>
+                        <div class="mb-3 row">
+                            <label class="col-sm-4 col-form-label text-muted">Created By</label>
+                            <div class="col-sm-8">
+                                <input type="text" class="form-control-plaintext" value="{{ current_user.name }}"
+                                    readonly>
                             </div>
                         </div>
 
-                        <div class="mb-3" id="equipment_field">
-                            <label class="form-label">Select Equipment</label>
-                            <select name="equipment_id" id="equipment_id" class="form-select" required>
-                                <option value="">-- Choose Equipment --</option>
-                                {% for eq in equipment %}
-                                <option value="{{ eq.id }}">{{ eq.name }} ({{ eq.serial_number }})</option>
-                                {% endfor %}
-                            </select>
+                        <div class="mb-3 row">
+                            <label class="col-sm-4 col-form-label text-muted">Maintenance For</label>
+                            <div class="col-sm-8 d-flex align-items-center">
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="maintenance_for" id="type_eq"
+                                        value="Equipment" checked onchange="toggleType()">
+                                    <label class="form-check-label" for="type_eq">Equipment</label>
+                                </div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="maintenance_for" id="type_wc"
+                                        value="Work Center" onchange="toggleType()">
+                                    <label class="form-check-label" for="type_wc">Work Center</label>
+                                </div>
+                            </div>
                         </div>
 
-                        <div class="mb-3 d-none" id="work_center_field">
-                            <label class="form-label">Select Work Center</label>
-                            <select name="work_center_id" id="work_center_id" class="form-select">
-                                <option value="">-- Choose Work Center --</option>
-                                {% for wc in work_centers %}
-                                <option value="{{ wc.id }}">{{ wc.name }} ({{ wc.code }})</option>
-                                {% endfor %}
-                            </select>
+                        <div class="mb-3 row" id="eq_row">
+                            <label class="col-sm-4 col-form-label text-muted">Equipment</label>
+                            <div class="col-sm-8">
+                                <select name="equipment_id" id="equipment_id"
+                                    class="form-select border-0 border-bottom rounded-0 ps-0">
+                                    <option value="">Select Equipment...</option>
+                                    {% for eq in equipment %}
+                                    <option value="{{ eq.id }}">{{ eq.name }} / {{ eq.serial_number }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
                         </div>
 
-                        <script>
-                            function toggleMaintenanceFor() {
-                                const isEq = document.getElementById('for_equipment').checked;
-                                const eqField = document.getElementById('equipment_field');
-                                const wcField = document.getElementById('work_center_field');
-                                const eqInput = document.getElementById('equipment_id');
-                                const wcInput = document.getElementById('work_center_id');
-
-                                if (isEq) {
-                                    eqField.classList.remove('d-none');
-                                    wcField.classList.add('d-none');
-                                    eqInput.required = true;
-                                    wcInput.required = false;
-                                } else {
-                                    eqField.classList.add('d-none');
-                                    wcField.classList.remove('d-none');
-                                    eqInput.required = false;
-                                    wcInput.required = true;
-                                }
-                            }
-                        </script>
-
-                        <div class="mb-3">
-                            <label class="form-label">Scheduled Date</label>
-                            <input type="date" name="scheduled_date" class="form-control" value="{{ pre_date }}">
+                        <div class="mb-3 row d-none" id="wc_row">
+                            <label class="col-sm-4 col-form-label text-muted">Work Center</label>
+                            <div class="col-sm-8">
+                                <select name="work_center_id" id="work_center_id"
+                                    class="form-select border-0 border-bottom rounded-0 ps-0">
+                                    <option value="">Select Work Center...</option>
+                                    {% for wc in work_centers %}
+                                    <option value="{{ wc.id }}">{{ wc.name }} ({{ wc.code }})</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
                         </div>
 
-                        <div class="d-grid gap-2">
-                            <button type="submit" class="btn btn-primary">Create Request</button>
-                            <a href="/kanban" class="btn btn-outline-secondary">Cancel</a>
+                        <div class="mb-3 row">
+                            <label class="col-sm-4 col-form-label text-muted">Request Date?</label>
+                            <div class="col-sm-8">
+                                <input type="text" class="form-control-plaintext" value="{{ today_date }}" readonly>
+                            </div>
                         </div>
-                    </form>
+
+                        <div class="mb-3 row">
+                            <label class="col-sm-4 col-form-label text-muted">Maintenance Type</label>
+                            <div class="col-sm-8">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="type" value="Corrective" checked>
+                                    <label class="form-check-label">Corrective</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="type" value="Preventive">
+                                    <label class="form-check-label">Preventive</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Column -->
+                    <div class="col-md-6 border-start ps-5">
+                        <div class="mb-3 row">
+                            <label class="col-sm-4 col-form-label text-muted">Team</label>
+                            <div class="col-sm-8">
+                                <select name="team" class="form-select border-0 border-bottom rounded-0 ps-0">
+                                    <option value="Internal Maintenance">Internal Maintenance</option>
+                                    <option value="Mechanical">Mechanical</option>
+                                    <option value="Electrical">Electrical</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="mb-3 row">
+                            <label class="col-sm-4 col-form-label text-muted">Technician</label>
+                            <div class="col-sm-8">
+                                <input type="text" name="technician"
+                                    class="form-control border-0 border-bottom rounded-0 ps-0"
+                                    placeholder="e.g. Mitchell Admin">
+                            </div>
+                        </div>
+
+                        <div class="mb-3 row">
+                            <label class="col-sm-4 col-form-label text-muted">Scheduled Date?</label>
+                            <div class="col-sm-8">
+                                <input type="datetime-local" name="scheduled_date"
+                                    class="form-control border-0 border-bottom rounded-0 ps-0">
+                            </div>
+                        </div>
+
+                        <div class="mb-3 row">
+                            <label class="col-sm-4 col-form-label text-muted">Duration</label>
+                            <div class="col-sm-8 d-flex align-items-center">
+                                <input type="number" step="0.5" name="duration"
+                                    class="form-control border-0 border-bottom rounded-0 ps-0 w-25" value="0.0">
+                                <span class="ms-2">hours</span>
+                            </div>
+                        </div>
+
+                        <div class="mb-3 row">
+                            <label class="col-sm-4 col-form-label text-muted">Priority</label>
+                            <div class="col-sm-8">
+                                <div class="rating">
+                                    <input type="radio" name="priority" value="3" id="star3"><label
+                                        for="star3">★</label>
+                                    <input type="radio" name="priority" value="2" id="star2"><label
+                                        for="star2">★</label>
+                                    <input type="radio" name="priority" value="1" id="star1"><label
+                                        for="star1">★</label>
+                                    <input type="radio" name="priority" value="0" id="star0" checked hidden>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3 row">
+                            <label class="col-sm-4 col-form-label text-muted">Company</label>
+                            <div class="col-sm-8">
+                                <input type="text" class="form-control-plaintext text-muted"
+                                    value="My Company (San Francisco)" readonly>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-            </div>
+
+                <!-- Tabs -->
+                <div class="mt-5">
+                    <ul class="nav nav-tabs">
+                        <li class="nav-item">
+                            <a class="nav-link active" href="#">Notes</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#">Instructions</a>
+                        </li>
+                    </ul>
+                    <div class="p-3 border border-top-0 bg-light" style="min-height: 100px;">
+                        <textarea class="form-control bg-transparent border-0"
+                            placeholder="Add internal notes..."></textarea>
+                    </div>
+                </div>
+
+                <div class="mt-4">
+                    <button type="submit" class="btn btn-primary">Save Request</button>
+                    <a href="/kanban" class="btn btn-outline-secondary">Discard</a>
+                </div>
+            </form>
         </div>
     </div>
 </div>
+
+<script>
+    function toggleType() {
+        const isEq = document.getElementById('type_eq').checked;
+        const eqRow = document.getElementById('eq_row');
+        const wcRow = document.getElementById('wc_row');
+
+        if (isEq) {
+            eqRow.classList.remove('d-none');
+            wcRow.classList.add('d-none');
+        } else {
+            eqRow.classList.add('d-none');
+            wcRow.classList.remove('d-none');
+        }
+    }
+</script>
 {% endblock %}

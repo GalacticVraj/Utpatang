@@ -1,4 +1,4 @@
-from extensions import db
+from app import db
 from datetime import date
 from flask_login import UserMixin
 
@@ -7,7 +7,6 @@ class User(UserMixin, db.Model):
     name = db.Column(db.String(100))
     email = db.Column(db.String(100), unique=True)
     password_hash = db.Column(db.String(200))
-
 
 class WorkCenter(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -36,6 +35,7 @@ class Equipment(db.Model):
 
     is_scrapped = db.Column(db.Boolean, default=False)
     health_score = db.Column(db.Integer, default=100) # 0-100
+    work_center_id = db.Column(db.Integer, nullable=True) # Linked Work Center
 
 class MaintenanceTeam(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -44,39 +44,33 @@ class MaintenanceTeam(db.Model):
 class Technician(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(50))
-    team_name = db.Column(db.String(50))
+    team_id = db.Column(db.Integer)
 
 class MaintenanceRequest(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-
     subject = db.Column(db.String(200))
-    maintenance_for = db.Column(db.String(20), default="Equipment") # "Equipment" or "Work Center"
-    
-    # Polymorphic associations
+    request_type = db.Column(db.String(20))  # Corrective / Preventive
+    maintenance_for = db.Column(db.String(20), default="Equipment") # Equipment or Work Center
     equipment_id = db.Column(db.Integer, nullable=True)
     work_center_id = db.Column(db.Integer, nullable=True)
-    
-    equipment_name = db.Column(db.String(100)) # Stores name of Eq or WC for display
-
-    request_type = db.Column(db.String(20))  # Corrective / Preventive
-
+    equipment_name = db.Column(db.String(100))
     team = db.Column(db.String(50))
-
     technician = db.Column(db.String(50))
-
     stage = db.Column(db.String(20), default="New")
-
+    priority = db.Column(db.Integer, default=0) # 0=Low .. 3=Very High
+    duration = db.Column(db.Float, default=0.0)
+    company = db.Column(db.String(100), default="My Company (San Francisco)")
     scheduled_date = db.Column(db.Date)
     duration_hours = db.Column(db.Float)
     actual_duration = db.Column(db.Float)
-
     created_at = db.Column(db.Date, default=date.today)
 
 class Employee(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    employee_id = db.Column(db.String(20), unique=True, nullable=False)
+    employee_id = db.Column(db.String(20), unique=True, nullable=False) # e.g. EMP001
     name = db.Column(db.String(100), nullable=False)
     department = db.Column(db.String(50))
     position = db.Column(db.String(50))
     email = db.Column(db.String(100))
     joining_date = db.Column(db.Date)
+    status = db.Column(db.String(20), default="Active") # Active, On Leave, Resigned

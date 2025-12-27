@@ -18,12 +18,13 @@
                             <th scope="col">Alternative Workcenters</th>
                             <th scope="col">Cost per hour</th>
                             <th scope="col">Capacity Efficiency / OEE Target</th>
+                            <th scope="col" class="text-end pe-4">Actions</th>
                         </tr>
                     </thead>
                     <tbody style="background-color: #121212; color: #ccc;">
                         {% for wc in work_centers %}
                         <tr>
-                            <td class="fw-bold text-white">{{ wc.name }}</td>
+                            <td class="fw-bold" style="color: #4da6ff;">{{ wc.name }}</td>
                             <td>{{ wc.code }}</td>
                             <td>{{ wc.tag }}</td>
                             <td>{{ wc.active_work_centers }}</td>
@@ -31,6 +32,11 @@
                             <td>
                                 <div>{{ wc.capacity_efficiency }}% Efficiency</div>
                                 <div class="text-muted small">{{ wc.oee_target }}% OEE Target</div>
+                            </td>
+                            <td class="text-end pe-4">
+                                <a href="/kanban?work_center_id={{ wc.id }}" class="btn btn-sm btn-outline-info">
+                                    <i class="bi bi-tools"></i> History
+                                </a>
                             </td>
                         </tr>
                         {% else %}
